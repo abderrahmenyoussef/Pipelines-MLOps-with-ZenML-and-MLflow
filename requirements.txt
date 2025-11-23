@@ -1,0 +1,11 @@
+mlflow>=2.12
+dvc[s3]>=3.0
+boto3
+minio
+zenml>=0.66
+ultralytics>=8.0.0
+numpy
+pandas
+matplotlib
+pyyaml
+rich

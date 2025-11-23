@@ -1,0 +1,8 @@
+stages:
+  make_tiny_person:
+    cmd: python tools/make_tiny_person_from_coco128.py
+    deps:
+      - tools/make_tiny_person_from_coco128.py
+      - data/coco128
+    outs:
+      - data/tiny_coco
