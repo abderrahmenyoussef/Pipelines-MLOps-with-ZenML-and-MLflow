@@ -41,9 +41,9 @@ zenml init
 # Créer une stack locale pointant vers MLflow + artefacts locaux
 zenml orchestrator register local_orch --type=local || true
 zenml artifact-store register local_artifacts --type=local --path=./artifacts || true
-zenml experiment-tracker register mlflow_tracker --type=mlflow         --tracking_uri=http://localhost:5000 || true
+zenml experiment-tracker register mlflow_tracker --type=mlflow --tracking_uri=http://localhost:5000 || true
 
-zenml stack register local_stack         -o local_orch -a local_artifacts -e mlflow_tracker || true
+zenml stack register local_stack -o local_orch -a local_artifacts -e mlflow_tracker || true
 zenml stack set local_stack
 ```
 
