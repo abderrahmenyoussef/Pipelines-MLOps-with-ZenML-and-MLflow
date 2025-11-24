@@ -9,3 +9,8 @@ pandas
 matplotlib
 pyyaml
 rich
+sqlalchemy-utils
+sqlmodel
+passlib
+pymysql
+bcrypt

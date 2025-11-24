@@ -31,6 +31,7 @@ def main():
     args = parse_args()
 
     mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+    #mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
     mlflow.set_experiment("cv_yolo_tiny")
 
     with mlflow.start_run(run_name=args.exp_name):
