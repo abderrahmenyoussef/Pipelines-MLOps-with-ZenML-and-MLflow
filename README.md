@@ -171,7 +171,7 @@ zenml artifact-store register minio_artifacts \
     --flavor=s3 \
     --path='s3://zenml-artifacts' \
     --authentication_secret=minio_zenml_secret \
-    --client_kwargs='{"endpoint_url": "http://minio:9000", "region_name": "us-east-1"}'
+    --client_kwargs='{"endpoint_url": "http://localhost:9000", "region_name": "us-east-1"}'
 
 # 4) Orchestrateur local (exécution des steps sur la machine où le pipeline est lancé)
 zenml orchestrator register local_orch --flavor=local
