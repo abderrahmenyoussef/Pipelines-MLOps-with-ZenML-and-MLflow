@@ -1,18 +1,21 @@
 services:
   mlflow:
-    image: ghcr.io/mlflow/mlflow:latest
+    image: salahgo/mlflow:v4
     container_name: mlflow
     working_dir: /mlflow
     command: >
       mlflow server --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:///mlflow.db
-      --artifacts-destination s3://VOTRE_BUCKET/mlflow-artifacts
+      --artifacts-destination s3://VOTREBUCKET/mlflow-artifacts
     ports:
       - "5000:5000"
     volumes:
       - mlflowdata:/mlflow
-    env_file:
-      - aws.env
+    environment:
+      AWS_ACCESS_KEY_ID: VOTRE_ID
+      AWS_SECRET_ACCESS_KEY: VOTRE_KEY
+      AWS_SESSION_TOKEN: VOTRE_TOKEN
+      AWS_DEFAULT_REGION: us-east-1
 
   zenml-db:
     image: mysql:8.0
