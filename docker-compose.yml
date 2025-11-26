@@ -6,26 +6,13 @@ services:
     command: >
       mlflow server --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:///mlflow.db
-      --artifacts-destination /mlflow/artifacts
+      --artifacts-destination s3://VOTRE_BUCKET/mlflow-artifacts
     ports:
       - "5000:5000"
     volumes:
       - mlflowdata:/mlflow
-    depends_on:
-      - minio
-
-  minio:
-    image: minio/minio
-    container_name: minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio12345
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - miniodata:/data
+    env_file:
+      - aws.env
 
   zenml-db:
     image: mysql:8.0
@@ -51,8 +38,9 @@ services:
       ZENML_STORE_URL: mysql://zenml:zenmlpass@zenml-db:3306/zenml
       ZENML_DEFAULT_USER_NAME: admin
       ZENML_DEFAULT_USER_PASSWORD: zenml
+    env_file:
+      - aws.env
 
 volumes:
   mlflowdata: {}
-  miniodata: {}
   zenmlmysqldata: {}

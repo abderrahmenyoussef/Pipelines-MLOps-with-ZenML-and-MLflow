@@ -1,36 +1,52 @@
-# zenml-cv-yolo
+# zenml-cv-yolo (version AWS S3)
 
 Projet MLOps de détection d'objets (YOLO tiny) avec :
 
-- **DVC** pour le versioning de données (tiny COCO "person")
-- **MLflow + MinIO** pour le tracking d'expériences et artefacts
-- **ZenML + ZenML Server** pour définir et visualiser des pipelines
-- TP4 : exécution directe du script `train_cv.py`
-- TP5 : exécution via un pipeline **ZenML**
+* **DVC** pour le versioning de données (tiny COCO "person")
+* **MLflow + AWS S3** pour le tracking d'expériences et artefacts
+* **ZenML + ZenML Server** pour définir et visualiser des pipelines
+* TP4 : exécution directe du script `train_cv.py`
+* TP5 : exécution via un pipeline **ZenML**
 
 ---
 
-## 1. Démarrer l'infrastructure (MLflow + MinIO + ZenML Server)
+## 1. Démarrer l'infrastructure (MLflow + ZenML Server + AWS S3)
+
+Avant de démarrer, créer un fichier **aws.env** :
+
+```
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxx
+AWS_SESSION_TOKEN=xxxxxxxxxxxxxxxxxxxx
+AWS_DEFAULT_REGION=us-east-1
+```
+
+Puis lancer l'infrastructure :
 
 ```bash
 docker compose up -d
-````
+```
 
 * MLflow UI : [http://localhost:5000](http://localhost:5000)
-* MinIO console : [http://localhost:9001](http://localhost:9001)
 * ZenML Server : [http://localhost:8080](http://localhost:8080)
+
+> Les artefacts MLflow et ZenML seront stockés dans **AWS S3** (bucket à définir).
 
 ---
 
 ## 2. Environnement Python local
 
-Dans ce projet, le **code des pipelines** est exécuté dans votre environnement Python local
-(venv) mais **toute la configuration ZenML + stockage des artefacts** est centralisée
-dans le **ZenML Server** (Docker) et MinIO (bucket S3).
+Les **pipelines ZenML s’exécutent dans votre environnement Python local**,
+mais la configuration globale (stack, metadata, artefacts) est centralisée via :
+
+* ZenML Server (dans Docker)
+* S3 AWS (artefacts ZenML et MLflow)
+
+Commandes pour créer votre venv :
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate            # Windows: adapter
+source .venv/bin/activate          # Adapter sous Windows
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
@@ -42,50 +58,47 @@ pip install -r requirements.txt
 Depuis la racine du projet :
 
 ```bash
-# Se connecter au ZenML Server (dans Docker)
+# Connexion au ZenML Server
 zenml connect http://localhost:8080
 
-# Initialiser le repo ZenML (si pas déjà fait)
+# Initialiser ZenML localement
 zenml init
 
-# Vérifier les stacks disponibles sur le serveur
+# Lister les stacks disponibles sur le serveur
 zenml stack list
 
-# Sélectionner la stack préconfigurée (créée par l'enseignant)
+# Sélectionner la stack fournie par l’enseignant
 zenml stack set mlflow_stack
 
-# (Optionnel) Vérifier la stack active
+# (Optionnel)
 zenml stack describe
 ```
 
-La stack `mlflow_stack` est **préconfigurée dans le ZenML Server** (par l’enseignant) avec :
+La stack `mlflow_stack` est préconfigurée dans le serveur avec :
 
-* un **orchestrateur local** (exécution des steps dans votre venv local) ;
-* un **artifact store S3** sur **MinIO** (bucket `zenml-artifacts`) pour les artefacts ZenML ;
-* un **experiment tracker MLflow** pointant vers le service MLflow dans Docker.
+* orchestrateur local
+* artifact store **S3 AWS**
+* experiment tracker MLflow
 
-> ⚠️ En TP, **vous ne créez pas de stack** (`register`), vous utilisez uniquement celle
-> qui est déjà définie côté serveur.
+> ⚠️ Les étudiants **ne créent pas de stack**, ils utilisent celle du serveur.
 
 ---
 
 ## 4. Dataset tiny COCO (person)
 
-Toujours depuis la racine du projet :
-
 ```bash
 python tools/make_tiny_person_from_coco128.py
-# et/ou dvc pull selon le TP
+# ou dvc pull selon le TP
 ```
 
-Le dataset minimal `tiny_coco` est ensuite utilisé par le script d’entraînement YOLO
-et par les steps du pipeline ZenML.
+Le dataset `tiny_coco` est utilisé pour :
+
+* l’entraînement YOLO
+* les steps ZenML
 
 ---
 
 ## 5. Lancer le pipeline ZenML (baseline)
-
-Pipeline ZenML "baseline" (YOLO tiny, hyperparamètres par défaut) :
 
 ```bash
 bash scripts/run_zenml_pipeline.sh
@@ -95,15 +108,16 @@ python -m src.zenml_pipelines.run_yolo_pipeline_baseline
 
 Ce pipeline :
 
-* exécute les **steps ZenML** (préparation des données, entraînement, évaluation, …) ;
-* enregistre les **runs de pipeline** dans le **ZenML Server** ;
-* loggue les **métriques & artefacts de training** dans **MLflow**.
+* exécute les steps ZenML (préparation / entraînement / évaluation)
+* loggue tous les artefacts sur **AWS S3**
+* enregistre les runs dans :
+
+  * ZenML Server
+  * MLflow (métriques + artefacts)
 
 ---
 
 ## 6. Lancer une grille de pipelines ZenML
-
-Pour lancer une **grille de runs** (variations sur `imgsz`, `epochs`, etc.) :
 
 ```bash
 bash scripts/run_zenml_grid.sh
@@ -111,88 +125,96 @@ bash scripts/run_zenml_grid.sh
 python -m src.zenml_pipelines.run_yolo_pipeline_grid
 ```
 
-Ce script lance plusieurs exécutions du pipeline avec des hyperparamètres différents.
+Lance plusieurs runs avec des variations d’hyperparamètres.
 
 ---
 
 ## 7. Où regarder ?
 
-* **ZenML Server** ([http://localhost:8080](http://localhost:8080))
+### **ZenML Server** — [http://localhost:8080](http://localhost:8080)
 
-  * Vue **pipelines** : définition des pipelines ZenML.
-  * Vue **runs** : liste des exécutions (baseline + grille).
-  * Vue **stacks** : stack `mlflow_stack` (orchestrateur, artifact store MinIO, MLflow tracker).
+* Pipelines
+* Runs
+* Stacks (`mlflow_stack` → S3 + MLflow + orchestrateur local)
 
-* **MLflow UI** ([http://localhost:5000](http://localhost:5000))
+### **MLflow UI** — [http://localhost:5000](http://localhost:5000)
 
-  * Liste des runs (projet YOLO tiny).
-  * Métriques (`mAP@50`, précision, rappel, etc.).
-  * Artefacts : images de résultats, matrices de confusion, poids du modèle, …
+* Runs YOLO tiny
+* Métirques (`mAP@50`, précision, rappel…)
+* Artefacts → stockés physiquement dans **S3**
 
-* **MinIO** ([http://localhost:9001](http://localhost:9001))
+### **AWS S3**
 
-  * Bucket `zenml-artifacts` : artefacts ZenML (tous les outputs des steps / pipelines).
-  * (Éventuellement) autres buckets utilisés comme **remote DVC** ou pour MLflow.
+* Bucket `mlflow-artifacts` (ou autre)
+* Bucket `zenml-artifacts` (ou autre)
+* Contient :
+
+  * métriques
+  * images de résultats
+  * poids YOLO entraînés
+  * JSON de configuration
+  * outputs ZenML
 
 ---
 
-## 8. (Annexe) Configuration initiale dans le conteneur ZenML Server
+## 8. (Annexe) Configuration initiale côté ZenML Server (enseignant)
 
-> Cette section est uniquement pour la **configuration initiale** réalisée par
-> l’enseignant / admin. Les étudiants n’ont PAS à exécuter ces commandes.
+> Cette section est **réservée à l’enseignant / admin**.
+> Les étudiants **n’exécutent rien de tout ceci**.
 
-1. Dans la console MinIO ([http://localhost:9001](http://localhost:9001)), créer un **bucket** :
+1. Créer 2 buckets AWS S3 :
 
-   * nom : `zenml-artifacts`
+* `mlflow-artifacts`
+* `zenml-artifacts`
 
-2. Ouvrir un shell dans le conteneur ZenML Server (nom à adapter selon le `docker-compose`) :
+2. Entrer dans le conteneur ZenML Server :
 
 ```bash
 docker exec -it zenml-server bash
 ```
 
-3. Dans le conteneur, exécuter :
+3. Configurer MLflow comme tracker :
 
 ```bash
-# 1) Experiment tracker MLflow (MLflow est un autre service Docker, accessible via "mlflow")
 zenml experiment-tracker register mlflow_tracker \
     --flavor=mlflow \
     --tracking_uri=http://mlflow:5000 \
     --tracking_token="dummy-token"
-
-# 2) Secret MinIO (identifiants du service MinIO)
-zenml secret create minio_zenml_secret \
-    --aws_access_key_id='minio' \
-    --aws_secret_access_key='minio12345'
-
-# 3) Artifact store ZenML sur MinIO (bucket zenml-artifacts)
-#    Attention : depuis le conteneur, MinIO est accessible via le hostname "minio"
-zenml artifact-store register minio_artifacts \
-    --flavor=s3 \
-    --path='s3://zenml-artifacts' \
-    --authentication_secret=minio_zenml_secret \
-    --client_kwargs='{"endpoint_url": "http://localhost:9000", "region_name": "us-east-1"}'
-
-# 4) Orchestrateur local (exécution des steps sur la machine où le pipeline est lancé)
-zenml orchestrator register local_orch --flavor=local
-
-# 5) Stack complète : orchestrateur local + artifact store MinIO + MLflow tracker
-zenml stack register mlflow_stack \
-    -o local_orch -a minio_artifacts -e mlflow_tracker
-
-# 6) Définir cette stack comme stack par défaut dans le serveur
-zenml stack set mlflow_stack
 ```
 
-Après cette configuration :
+4. Créer le secret AWS :
 
-* la stack `mlflow_stack` est visible dans l’UI ZenML Server,
-* les étudiants n’ont plus qu’à faire :
+```bash
+zenml secret create aws_s3_secret \
+    --aws_access_key_id="$AWS_ACCESS_KEY_ID" \
+    --aws_secret_access_key="$AWS_SECRET_ACCESS_KEY" \
+    --aws_session_token="$AWS_SESSION_TOKEN"
+```
 
-  * `zenml connect http://localhost:8080`
-  * `zenml init`
-  * `zenml stack set mlflow_stack`
-  * puis lancer les pipelines.
+5. Artifact store S3 :
 
----
+```bash
+zenml artifact-store register s3_artifacts \
+    --flavor=s3 \
+    --path='s3://VOTRE_BUCKET/zenml-artifacts' \
+    --authentication_secret=aws_s3_secret
+```
 
+6. Orchestrateur local :
+
+```bash
+zenml orchestrator register local_orch --flavor=local
+```
+
+7. Stack complète :
+
+```bash
+zenml stack register mlflow_stack \
+    -o local_orch -a s3_artifacts -e mlflow_tracker
+```
+
+8. Définir la stack par défaut :
+
+```bash
+zenml stack set mlflow_stack
+```
