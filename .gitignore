@@ -19,3 +19,15 @@ data/tiny_coco/
 
 *.log
 *.pyc
+
+
+# Local ZenML / hidden config
+.zen
+
+# Build and run outputs (do not commit large artifacts)
+build/
+runs/
+
+# YOLO weights (local checkpoints)
+yolo*.pt
+
